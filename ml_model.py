@@ -164,8 +164,8 @@ class TripRecommender:
                 "lng": city["lng"],
                 "distance_km": city["distance_km"],
                 "match_score": match_score,
-                "attractions": [{"name": a["name"], "category": a["category"],
-                                 "popularity": a["popularity"], "description": a["description"]}
+                "attractions": [{"name": a["name"], "category": a.get("type", ""),
+                                 "popularity": a["popularity"], "description": a.get("description", "")}
                                 for a in city_attractions[:5]],
                 "transport": [{"mode": dict(t)["mode"],
                                "price_inr": dict(t)["price_inr"],

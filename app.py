@@ -146,11 +146,14 @@ def planner():
 def api_locations():
     return jsonify({"options": recommender.get_all_city_names()})
 
+# Train the ML model when the module loads (works with both dev server and WSGI)
+recommender.fit()
+
 if __name__ == "__main__":
     print("=" * 50)
     print("  Trip Planner India")
     print("  Flask + Machine Learning Backend")
     print("=" * 50)
-    recommender.fit()
     print(f"\n  Open http://localhost:5000\n")
-    app.run(debug=True, port=5000)
+    app.run(debug=True, host="0.0.0.0", port=5000)
+
