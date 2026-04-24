@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Trip Planner India - Explore the Soul of India{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero" id="heroSection">
+    <div class="hero-bg">
+        <img alt="India travel" src="https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=1600&q=80"/>
+        <div class="hero-overlay"></div>
+    </div>
+    <div class="hero-inner">
+        <div class="hero-text">
+            <div class="hero-badge">
+                <span class="material-symbols-outlined">auto_awesome</span>
+                AI-POWERED TRIP PLANNER
+            </div>
+            <h1 class="hero-title">
+                Celebrate <br/> <span class="hero-accent">India</span> <br/> Your Way.
+            </h1>
+            <p class="hero-subtitle">Choose any Indian city or state and build a smart travel route with local recommendations.</p>
+        </div>
+        <div class="hero-form-card" id="searchCard">
+            <h3>Start Your Journey</h3>
+            <div id="errorBanner" class="error-banner hidden"></div>
+            <form id="tripForm" action="/explore" method="GET">
+                <div class="form-group">
+                    <label>Starting City or State</label>
+                    <div class="input-row">
+                        <span class="material-symbols-outlined input-icon">location_on</span>
+                        <input type="text" name="location" id="locationInput" placeholder="Mumbai, Rajasthan, Kerala..." list="india-locations" autocomplete="off" value="{{ request.args.get('location', 'Jaipur') }}"/>
+                        <datalist id="india-locations">
+                            {% for opt in locations %}
+                            <option value="{{ opt.value }}">{{ opt.label }}</option>
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Budget</label>
+                        <select name="budget" id="budgetSelect">
+                            <option value="low">Budget</option>
+                            <option value="medium" selected>Standard</option>
+                            <option value="high">Luxury</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Travel Style</label>
+                        <select name="trip_type" id="tripTypeSelect">
+                            <option value="popular">Heritage</option>
+                            <option value="balanced" selected>Spiritual</option>
+                            <option value="nearby">Adventure</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary" id="planBtn">
+                    <span>PLAN MY TRIP</span>
+                    <span class="material-symbols-outlined">arrow_forward</span>
+                </button>
+                <p class="form-hint">Search from all states and cities in India, then explore route, stays, and nearby places.</p>
+            </form>
+        </div>
+    </div>
+</section>
+
+<!-- Featured Section -->
+<section class="featured-section">
+    <div class="section-header">
+        <div>
+            <span class="section-tag">Curated Collections</span>
+            <h2 class="section-title">Experience <br/>the Essence.</h2>
+        </div>
+        <p class="section-desc">Discover transport options, stay ideas, and culturally rich destinations tailored to your selected route.</p>
+    </div>
+    <div class="featured-grid">
+        <div class="featured-card featured-large" onclick="window.location='/explore'">
+            <img alt="Recommendations" src="https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=80"/>
+            <div class="featured-card-overlay"></div>
+            <div class="featured-card-text">
+                <span class="card-tag">Local Secrets</span>
+                <h4>The Taj Mahal</h4>
+                <p>Agra, Uttar Pradesh</p>
+            </div>
+        </div>
+        <div class="featured-card" onclick="window.location='/planner'">
+            <img alt="Planner" src="https://images.unsplash.com/photo-1477587458883-47145ed94245?auto=format&fit=crop&w=800&q=80"/>
+            <div class="featured-card-overlay"></div>
+            <div class="featured-card-text">
+                <h4>Planner Map</h4>
+                <p>Route and itinerary view</p>
+            </div>
+        </div>
+        <div class="featured-card" onclick="window.location='/stays'">
+            <img alt="Stays" src="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80"/>
+            <div class="featured-card-overlay"></div>
+            <div class="featured-card-text">
+                <h4>Stays and Transport</h4>
+            </div>
+        </div>
+        <div class="featured-card featured-accent" onclick="window.location='/planner'">
+            <div class="accent-content">
+                <span class="material-symbols-outlined">explore</span>
+                <h4>Open Planner <br/>Dashboard</h4>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

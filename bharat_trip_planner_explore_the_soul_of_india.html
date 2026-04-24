@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Trip Planner India - Explore the Soul of India</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        background: "#f8f9fa",
+                        primary: "#8f4e00",
+                        primaryContainer: "#ff9933",
+                        primaryFixed: "#ffdcc2",
+                        inversePrimary: "#ffb77a",
+                        secondary: "#4c56af",
+                        secondaryContainer: "#959efd",
+                        tertiary: "#1b6d24",
+                        tertiaryContainer: "#73c46f",
+                        surface: "#f8f9fa",
+                        surfaceContainerLow: "#f3f4f5",
+                        surfaceContainer: "#edeeef",
+                        surfaceContainerHigh: "#e7e8e9",
+                        surfaceContainerHighest: "#e1e3e4",
+                        surfaceDim: "#d9dadb",
+                        outline: "#887364",
+                        outlineVariant: "#dbc2b0",
+                        onSurface: "#191c1d",
+                        onSurfaceVariant: "#554336",
+                        onPrimary: "#ffffff",
+                        onSecondary: "#ffffff",
+                        onTertiary: "#ffffff",
+                    },
+                    fontFamily: {
+                        body: ["Plus Jakarta Sans", "sans-serif"],
+                    }
+                }
+            }
+        };
+    </script>
+
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/react-router@6.3.0/umd/react-router.development.js"></script>
+    <script src="https://unpkg.com/react-router-dom@6.3.0/umd/react-router-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Plus Jakarta Sans", sans-serif;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-onSurface antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useEffect, useMemo, useState } = React;
+        const { createRoot } = ReactDOM;
+        const { HashRouter, Routes, Route, Link, useNavigate, useLocation } = ReactRouterDOM;
+
+        const STORAGE_KEY = "tripPlannerIndiaSelection";
+        const DEFAULT_SELECTION = {
+            location: "Jaipur",
+            budget: "medium",
+            tripType: "balanced",
+        };
+
+        const budgetLabels = {
+            low: "Budget",
+            medium: "Standard",
+            high: "Luxury",
+        };
+
+        const tripTypeLabels = {
+            popular: "Heritage",
+            balanced: "Spiritual",
+            nearby: "Adventure",
+        };
+
+        const fetchJson = async (url, options) => {
+            const response = await fetch(url, options);
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || "Unable to load trip data.");
+            }
+            return data;
+        };
+
+        const readSelection = () => {
+            try {
+                return { ...DEFAULT_SELECTION, ...(JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}) };
+            } catch (error) {
+                return DEFAULT_SELECTION;
+            }
+        };
+
+        const persistSelection = (selection) => {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(selection));
+        };
+
+        const useLocations = () => {
+            const [locations, setLocations] = useState([]);
+
+            useEffect(() => {
+                fetchJson("/api/locations")
+                    .then((result) => setLocations(result.options || []))
+                    .catch(() => setLocations([]));
+            }, []);
+
+            return locations;
+        };
+
+        const usePlannerState = () => {
+            const [selection, setSelection] = useState(readSelection);
+            const [appState, setAppState] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState("");
+
+            const refresh = async (nextSelection = selection) => {
+                setLoading(true);
+                setError("");
+                try {
+                    const params = new URLSearchParams({
+                        location: nextSelection.location,
+                        budget: nextSelection.budget,
+                        trip_type: nextSelection.tripType,
+                    });
+                    const result = await fetchJson(`/api/app-state?${params.toString()}`);
+                    setAppState(result);
+                    setSelection(nextSelection);
+                    persistSelection(nextSelection);
+                    return result;
+                } catch (err) {
+                    setError(err.message);
+                    throw err;
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return {
+                selection,
+                setSelection,
+                appState,
+                loading,
+                error,
+                refresh,
+            };
+        };
+
+        const LoadingCard = ({ text }) => (
+            <div className="rounded-[2rem] bg-surfaceContainerLow/80 p-8 shadow-sm">
+                <div className="animate-pulse space-y-4">
+                    <div className="h-4 w-48 rounded-full bg-surfaceContainerHighest"></div>
+                    <div className="h-12 rounded-2xl bg-surfaceContainerHighest"></div>
+                    <div className="h-12 w-3/4 rounded-2xl bg-surfaceContainerHighest"></div>
+                </div>
+                <p className="mt-5 text-sm font-medium text-onSurfaceVariant">{text}</p>
+            </div>
+        );
+
+        const ErrorBanner = ({ message }) => (
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                {message}
+            </div>
+        );
+
+        const AppShell = ({ children }) => (
+            <div
+                className="min-h-screen"
+                style={{
+                    background:
+                        "radial-gradient(circle at top left, rgba(255,183,122,0.18), transparent 25%), radial-gradient(circle at top right, rgba(76,86,175,0.12), transparent 28%), linear-gradient(180deg, #f8f9fa 0%, #f3f4f5 100%)",
+                }}
+            >
+                {children}
+            </div>
+        );
+
+        const TopAppBar = () => {
+            const location = useLocation();
+            const itemClass = (path) =>
+                location.pathname === path
+                    ? "text-orange-600 font-bold border-b-2 border-orange-600"
+                    : "text-slate-600 hover:text-orange-500 transition-all duration-300";
+
+            return (
+                <header className="fixed top-0 z-50 w-full bg-surface/80 backdrop-blur-xl shadow-sm shadow-orange-900/5">
+                    <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+                        <Link to="/" className="text-2xl font-bold tracking-tighter text-orange-600">
+                            Trip Planner India
+                        </Link>
+                        <nav className="hidden items-center gap-8 md:flex">
+                            <Link to="/recommendations" className={itemClass("/recommendations")}>Explore</Link>
+                            <Link to="/map" className={itemClass("/map")}>Planner</Link>
+                            <Link to="/details" className={itemClass("/details")}>Stays</Link>
+                            <Link to="/" className={itemClass("/")}>Culture</Link>
+                        </nav>
+                        <div className="hidden items-center gap-4 sm:flex">
+                            <div className="flex items-center rounded-full bg-surfaceContainerHigh px-4 py-2 text-sm font-medium text-onSurfaceVariant">
+                                Flask + ML + India Travel
+                            </div>
+                        </div>
+                    </div>
+                </header>
+            );
+        };
+
+        const BottomNavBar = () => {
+            const location = useLocation();
+            const linkClass = (path) =>
+                location.pathname === path
+                    ? "flex flex-col items-center justify-center rounded-full bg-orange-100 px-5 py-2 text-orange-700"
+                    : "flex flex-col items-center justify-center px-5 py-2 text-slate-500";
+
+            return (
+                <nav className="fixed bottom-0 left-0 z-50 flex w-full justify-around rounded-t-3xl bg-surface/90 px-4 pb-6 pt-3 shadow-2xl backdrop-blur-2xl md:hidden">
+                    <Link to="/" className={linkClass("/")}>
+                        <span className="material-symbols-outlined mb-1">home_max</span>
+                        <span className="text-[11px] font-bold uppercase tracking-widest">Home</span>
+                    </Link>
+                    <Link to="/map" className={linkClass("/map")}>
+                        <span className="material-symbols-outlined mb-1">auto_awesome</span>
+                        <span className="text-[11px] font-bold uppercase tracking-widest">Trips</span>
+                    </Link>
+                    <Link to="/recommendations" className={linkClass("/recommendations")}>
+                        <span className="material-symbols-outlined mb-1">favorite</span>
+                        <span className="text-[11px] font-bold uppercase tracking-widest">Local</span>
+                    </Link>
+                    <Link to="/details" className={linkClass("/details")}>
+                        <span className="material-symbols-outlined mb-1">apartment</span>
+                        <span className="text-[11px] font-bold uppercase tracking-widest">Stays</span>
+                    </Link>
+                </nav>
+            );
+        };
+
+        const Footer = () => (
+            <footer className="bg-surfaceContainerLow px-6 pb-32 pt-24 md:pb-12">
+                <div className="mx-auto max-w-7xl">
+                    <div className="mb-16 grid gap-12 md:grid-cols-4">
+                        <div className="col-span-2 space-y-6">
+                            <div className="text-3xl font-bold tracking-tighter text-orange-600">Trip Planner India</div>
+                            <p className="max-w-sm leading-relaxed text-onSurfaceVariant">
+                                Redefining travel across India with route planning, recommendations, transport ideas, and stay suggestions powered by Flask and machine learning.
+                            </p>
+                        </div>
+                        <div className="space-y-4">
+                            <h5 className="font-bold text-onSurface">Resources</h5>
+                            <ul className="space-y-2 text-sm text-onSurfaceVariant">
+                                <li>City and state search</li>
+                                <li>Nearby recommendations</li>
+                                <li>Transport estimate</li>
+                            </ul>
+                        </div>
+                        <div className="space-y-4">
+                            <h5 className="font-bold text-onSurface">Project</h5>
+                            <ul className="space-y-2 text-sm text-onSurfaceVariant">
+                                <li>Planner</li>
+                                <li>Stays</li>
+                                <li>Local Secrets</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div className="border-t border-outlineVariant/20 pt-8 text-sm text-outline">
+                        <p>© 2026 Trip Planner India. Crafted for smart travel planning across India.</p>
+                    </div>
+                </div>
+            </footer>
+        );
+
+        const LandingPage = () => {
+            const navigate = useNavigate();
+            const planner = usePlannerState();
+            const locations = useLocations();
+            const [form, setForm] = useState(readSelection);
+            const [submitting, setSubmitting] = useState(false);
+
+            useEffect(() => {
+                planner.refresh(form).catch(() => {});
+            }, []);
+
+            const planTrip = async () => {
+                setSubmitting(true);
+                try {
+                    const nextSelection = { ...form };
+                    await fetchJson("/api/plan", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            location: nextSelection.location,
+                            source_city: nextSelection.location,
+                            budget: nextSelection.budget,
+                            trip_type: nextSelection.tripType,
+                        }),
+                    });
+                    await planner.refresh(nextSelection);
+                    navigate("/recommendations");
+                } catch (error) {
+                } finally {
+                    setSubmitting(false);
+                }
+            };
+
+            const featured = planner.appState?.home?.featured_destinations || [];
+
+            return (
+                <div className="pt-20">
+                    <section className="relative flex min-h-[921px] items-center overflow-hidden px-6">
+                        <div className="absolute inset-0 z-0">
+                            <img alt="India travel" className="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6lwf0c6oUv3r-0zYhFe0igNpjZ3nwnL2bhiRqWZ-H7GgbaxsMIuuWxhRCF_TJRHxMopwDhLgW7YiGwqBg2tjHW4L0w1FeforDCsPP3nCXYDEm6JTmAmmqPxBh-5ZeQc-fbVfeHHr2A3jKAA_mBVbhGx3M4emvkAWxHmkTgv6rpUifTus4CAQhu_rosbZAhNz3tNbNUHpCjMXvIDPK1plpz8rNdPVxpWDpy8p8AH5i51ZG-NDC_w1VpI_77ybTiu9Rvq3ynT51NQ"/>
+                            <div className="absolute inset-0 bg-gradient-to-r from-background via-background/40 to-transparent"></div>
+                        </div>
+                        <div className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-12 md:grid-cols-2">
+                            <div className="space-y-8">
+                                <div className="inline-flex items-center gap-2 rounded-full bg-tertiaryContainer/20 px-4 py-2 text-sm font-semibold text-tertiary">
+                                    <span className="material-symbols-outlined text-sm">auto_awesome</span>
+                                    AI-POWERED TRIP PLANNER
+                                </div>
+                                <h1 className="text-6xl font-extrabold leading-[0.9] tracking-tighter text-onSurface md:text-8xl">
+                                    Celebrate <br/> <span className="font-serif italic text-primary">India</span> <br/> Your Way.
+                                </h1>
+                                <p className="max-w-md text-lg leading-relaxed text-onSurfaceVariant">
+                                    {planner.appState?.home?.hero_subtitle || "Choose any Indian city or state and build a smart travel route with local recommendations."}
+                                </p>
+                            </div>
+                            <div className="space-y-6 rounded-[2rem] border border-outlineVariant/10 bg-white/85 p-8 shadow-2xl shadow-orange-900/10 backdrop-blur-2xl">
+                                <h3 className="text-2xl font-bold text-onSurface">Start Your Journey</h3>
+                                {planner.error && <ErrorBanner message={planner.error} />}
+                                <div className="space-y-4">
+                                    <div className="group">
+                                        <label className="mb-2 ml-1 block text-[11px] font-bold uppercase tracking-widest text-outline">Starting City or State</label>
+                                        <div className="flex items-center gap-3 rounded-2xl bg-surfaceContainerLow px-5 py-4">
+                                            <span className="material-symbols-outlined text-primary">location_on</span>
+                                            <input
+                                                className="w-full border-none bg-transparent p-0 font-medium text-onSurface placeholder:text-outlineVariant focus:ring-0"
+                                                placeholder="Mumbai, Rajasthan, Kerala..."
+                                                type="text"
+                                                list="india-locations"
+                                                value={form.location}
+                                                onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))}
+                                            />
+                                            <datalist id="india-locations">
+                                                {locations.map((option, index) => (
+                                                    <option key={`${option.value}-${option.type}-${index}`} value={option.value}>
+                                                        {option.label}
+                                                    </option>
+                                                ))}
+                                            </datalist>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="mb-2 ml-1 block text-[11px] font-bold uppercase tracking-widest text-outline">Budget</label>
+                                            <select
+                                                className="w-full appearance-none rounded-2xl border-none bg-surfaceContainerLow px-5 py-4 font-medium text-onSurface focus:ring-0"
+                                                value={form.budget}
+                                                onChange={(event) => setForm((current) => ({ ...current, budget: event.target.value }))}
+                                            >
+                                                <option value="low">Budget</option>
+                                                <option value="medium">Standard</option>
+                                                <option value="high">Luxury</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="mb-2 ml-1 block text-[11px] font-bold uppercase tracking-widest text-outline">Travel Style</label>
+                                            <select
+                                                className="w-full appearance-none rounded-2xl border-none bg-surfaceContainerLow px-5 py-4 font-medium text-onSurface focus:ring-0"
+                                                value={form.tripType}
+                                                onChange={(event) => setForm((current) => ({ ...current, tripType: event.target.value }))}
+                                            >
+                                                <option value="popular">Heritage</option>
+                                                <option value="balanced">Spiritual</option>
+                                                <option value="nearby">Adventure</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onClick={planTrip} className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary to-primaryContainer py-5 font-bold text-onPrimary shadow-lg shadow-orange-900/20 transition-all hover:scale-[1.02] active:scale-95">
+                                    <span>{submitting ? "PLANNING..." : "PLAN MY TRIP"}</span>
+                                    <span className="material-symbols-outlined">arrow_forward</span>
+                                </button>
+                                <p className="text-center text-sm text-outlineVariant">Search from all states and cities in India, then explore route, stays, and nearby places.</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="mx-auto max-w-7xl px-6 py-24">
+                        <div className="mb-16 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+                            <div className="space-y-4">
+                                <span className="text-xs font-bold uppercase tracking-widest text-primary">Curated Collections</span>
+                                <h2 className="text-5xl font-extrabold tracking-tighter">Experience <br/> the Essence.</h2>
+                            </div>
+                            <p className="max-w-sm text-lg text-onSurfaceVariant">
+                                Discover transport options, stay ideas, and culturally rich destinations tailored to your selected route.
+                            </p>
+                        </div>
+                        <div className="grid min-h-[600px] grid-cols-1 gap-6 md:grid-cols-4 md:grid-rows-2">
+                            <div className="group relative cursor-pointer overflow-hidden rounded-[2.5rem] md:col-span-2 md:row-span-2" onClick={() => navigate("/recommendations")}>
+                                <img alt="Recommendations" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA_cZOWREl4k8ZelMZfFtYzd3bt9GDZWkE59VWZInwQarjePaDb1lj-QfU0WoQbnpjSjg4ee1glH8M90xE-F_Z2p9PvtFWKJaOHH3bMPEKm3vH9Nx969h7pARItuzLP5c-HNL6F0jWoFEQT9lqNso6J_US5OXgDooX_Zf5rlMiLecQABBXU_CQtrBzKMv_ozTMB3dnTytBErkRcRkD09hj_zndEyEB66EeBkth2hGmuTTYjl0t5a7AdR3zG_sWWp3weF6Ur-kTDOQ"/>
+                                <div className="absolute inset-0 bg-gradient-to-t from-onSurface/80 via-transparent to-transparent"></div>
+                                <div className="absolute bottom-8 left-8 text-white">
+                                    <span className="mb-4 inline-block rounded-full bg-primaryContainer/30 px-3 py-1 text-xs font-bold uppercase tracking-widest backdrop-blur-md">Local Secrets</span>
+                                    <h4 className="text-3xl font-bold">{featured[0]?.title || "The Taj Mahal"}</h4>
+                                    <p className="mt-2 text-white/80">{featured[0] ? `${featured[0].city}, ${featured[0].state}` : "Agra, Uttar Pradesh"}</p>
+                                </div>
+                            </div>
+                            <div className="group relative overflow-hidden rounded-[2.5rem]">
+                                <img alt="Planner" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXSNilimRHgA3n7zLp4WDtln4hy4zi7bQZWbxOSmaNg3yhw9oq8cqRMnmolN_z40qNBHtWZXSREDwbZrHPga4jNeA50_42S-XB5mcsQDIs-2K41O8JSx_zz20l9U-k3HC_74zFXVvjSsYLq9HDdK98ZtCpk2JMOJWDEnVl65M-c0OYFDW5Bd66gI3tSwLbMEpFPN8L2Dzc58WCnxbVnC70SW_uZSkwQeFwhHcmUG4vpsNvkUQ1QAwL5JcL9pQa4FDVWzpAnTRZAQ"/>
+                                <div className="absolute inset-0 bg-gradient-to-t from-onSurface/80 via-transparent to-transparent"></div>
+                                <div className="absolute bottom-8 left-8 text-white">
+                                    <h4 className="text-2xl font-bold">Planner Map</h4>
+                                    <p className="text-white/80">Route and itinerary view</p>
+                                </div>
+                            </div>
+                            <div className="group relative cursor-pointer overflow-hidden rounded-[2.5rem]" onClick={() => navigate("/details")}>
+                                <img alt="Stays" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" src="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80"/>
+                                <div className="absolute inset-0 bg-gradient-to-t from-onSurface/80 via-transparent to-transparent"></div>
+                                <div className="absolute bottom-6 left-6 text-white">
+                                    <h4 className="text-xl font-bold">Stays and Transport</h4>
+                                </div>
+                            </div>
+                            <div className="relative cursor-pointer overflow-hidden rounded-[2.5rem] bg-secondaryContainer" onClick={() => navigate("/map")}>
+                                <div className="absolute inset-0 flex flex-col justify-between p-8">
+                                    <span className="material-symbols-outlined text-4xl text-onSecondary">explore</span>
+                                    <h4 className="text-xl font-bold text-onSecondary">Open Planner <br/> Dashboard</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            );
+        };
+
+        const RecommendationsPage = () => {
+            const navigate = useNavigate();
+            const planner = usePlannerState();
+
+            useEffect(() => {
+                planner.refresh(planner.selection).catch(() => {});
+            }, []);
+
+            const data = planner.appState?.recommendations;
+            const cards = data?.cards || [];
+            const featured = data?.featured;
+
+            return (
+                <main className="mx-auto flex max-w-7xl flex-col gap-8 px-6 pb-12 pt-28 md:flex-row">
+                    <aside className="w-full space-y-8 md:w-72">
+                        <div className="space-y-6 rounded-xl bg-surfaceContainerLow p-6">
+                            <div>
+                                <h3 className="mb-4 text-sm font-extrabold uppercase tracking-widest text-onSurfaceVariant">ML Intelligence</h3>
+                                <div className="rounded-lg bg-primaryContainer/20 p-3">
+                                    <p className="text-xs font-medium leading-relaxed text-primary">
+                                        Personalized feed for {planner.selection.location} using {tripTypeLabels[planner.selection.tripType]} travel style.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="space-y-3">
+                                <h3 className="text-sm font-extrabold uppercase tracking-widest text-onSurfaceVariant">Selection</h3>
+                                <div className="space-y-2 text-sm text-onSurfaceVariant">
+                                    <p><strong className="text-onSurface">Place:</strong> {planner.selection.location}</p>
+                                    <p><strong className="text-onSurface">Budget:</strong> {budgetLabels[planner.selection.budget]}</p>
+                                    <p><strong className="text-onSurface">Style:</strong> {tripTypeLabels[planner.selection.tripType]}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+                    <div className="flex-1 space-y-8">
+                        <header className="space-y-2">
+                            <h1 className="text-4xl font-extrabold tracking-tighter text-onSurface">ML-Recommended Places</h1>
+                            <p className="font-medium text-onSurfaceVariant">{data?.subtitle || "Curated destinations tailored to your travel profile."}</p>
+                        </header>
+                        {planner.error && <ErrorBanner message={planner.error} />}
+                        {planner.loading && <LoadingCard text="Loading nearby destinations and Local Secrets..." />}
+                        {!planner.loading && featured && (
+                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                <article className="group relative overflow-hidden rounded-xl bg-white shadow-sm transition-all duration-500 hover:shadow-xl md:col-span-2">
+                                    <div className="flex h-full flex-col lg:flex-row">
+                                        <div className="overflow-hidden lg:w-3/5">
+                                            <img alt={featured.title} className="h-72 w-full object-cover transition-transform duration-700 group-hover:scale-110 lg:h-full" src={featured.image}/>
+                                        </div>
+                                        <div className="flex flex-col justify-between p-8 lg:w-2/5">
+                                            <div className="space-y-4">
+                                                <div className="flex items-start justify-between">
+                                                    <span className="rounded-full bg-tertiaryContainer/20 px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-tertiary">High Match • {featured.match_score}%</span>
+                                                    <span className="material-symbols-outlined text-outline">favorite</span>
+                                                </div>
+                                                <h2 className="text-3xl font-bold text-onSurface">{featured.title}</h2>
+                                                <p className="text-sm leading-relaxed text-onSurfaceVariant">{featured.description}</p>
+                                            </div>
+                                            <button onClick={() => navigate("/map")} className="mt-6 rounded-xl bg-gradient-to-r from-primary to-primaryContainer py-4 font-bold text-onPrimary shadow-lg">
+                                                Plan Visit
+                                            </button>
+                                        </div>
+                                    </div>
+                                </article>
+                                {cards.slice(1, 3).map((place) => (
+                                    <article key={place.title} className="overflow-hidden rounded-xl bg-white shadow-sm transition-all duration-500 hover:shadow-xl">
+                                        <div className="relative h-64 overflow-hidden">
+                                            <img alt={place.title} className="h-full w-full object-cover transition-transform duration-700 hover:scale-110" src={place.image}/>
+                                        </div>
+                                        <div className="space-y-4 p-6">
+                                            <h3 className="text-xl font-bold text-onSurface">{place.title}</h3>
+                                            <div className="flex items-center justify-between border-t border-outlineVariant/10 pt-2">
+                                                <span className="text-xs font-bold text-onSurfaceVariant">{place.distance_km} km away</span>
+                                                <span className="text-xs font-bold text-tertiary">{place.match_score}% score</span>
+                                            </div>
+                                            <p className="text-sm text-onSurfaceVariant">{place.description}</p>
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </main>
+            );
+        };
+
+        const DetailsPage = () => {
+            const planner = usePlannerState();
+
+            useEffect(() => {
+                planner.refresh(planner.selection).catch(() => {});
+            }, []);
+
+            const details = planner.appState?.stays;
+            const transport = details?.transport_options || [];
+            const hotels = details?.featured_hotels || [];
+
+            const transportIcon = (mode) => {
+                const value = mode.toLowerCase();
+                if (value.includes("car")) return "directions_car";
+                if (value.includes("bus")) return "directions_bus";
+                if (value.includes("train")) return "train";
+                return "flight";
+            };
+
+            return (
+                <main className="mx-auto max-w-7xl px-6 pb-32 pt-24">
+                    <section className="mb-16 grid grid-cols-1 items-end gap-8 lg:grid-cols-12">
+                        <div className="lg:col-span-7">
+                            <span className="mb-4 block text-[11px] font-bold uppercase tracking-widest text-primary">{details?.trip_theme || "Travel Details"}</span>
+                            <h1 className="mb-6 text-5xl font-extrabold leading-[0.95] tracking-tighter text-onSurface md:text-7xl">
+                                Reach the <br/><span className="text-primary">Best Stays</span>
+                            </h1>
+                            <p className="max-w-lg leading-relaxed text-onSurfaceVariant">{details?.intro || "Compare route and hotel options for your recommended destination."}</p>
+                        </div>
+                        <div className="relative h-[300px] overflow-hidden rounded-3xl lg:col-span-5">
+                            <img className="h-full w-full object-cover" src={details?.featured_image || "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80"}/>
+                            <div className="absolute inset-0 bg-gradient-to-t from-primary/40 to-transparent"></div>
+                        </div>
+                    </section>
+
+                    {planner.error && <ErrorBanner message={planner.error} />}
+                    {planner.loading && <LoadingCard text="Loading transport and stays..." />}
+
+                    {!planner.loading && (
+                        <>
+                            <section className="mb-20">
+                                <div className="mb-8 flex items-center justify-between">
+                                    <div>
+                                        <h2 className="text-3xl font-bold tracking-tight">How to Get There</h2>
+                                        <div className="mt-2 h-1 w-12 rounded-full bg-primary"></div>
+                                    </div>
+                                    <div className="text-sm font-semibold text-primary">
+                                        Destination: {details?.featured_city}, {details?.featured_state}
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+                                    {transport.map((item, idx) => (
+                                        <div key={`${item.mode}-${idx}`} className={`group rounded-3xl bg-white p-8 transition-all duration-300 hover:shadow-2xl ${idx === 0 ? "border-2 border-primary/10" : ""}`}>
+                                            <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-primaryFixed">
+                                                <span className="material-symbols-outlined text-3xl text-primary">{transportIcon(item.mode)}</span>
+                                            </div>
+                                            <h3 className="mb-2 text-xl font-bold">{item.mode}</h3>
+                                            <p className="mb-6 text-sm text-onSurfaceVariant">Estimated route for your selected journey.</p>
+                                            <div className="flex items-baseline space-x-1">
+                                                <span className="text-xs font-bold text-outline">EST.</span>
+                                                <span className="text-2xl font-extrabold text-onSurface">{item.estimated_price}</span>
+                                            </div>
+                                            {idx === 0 && <span className="mt-4 inline-block rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-onPrimary">Recommended</span>}
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+
+                            <section>
+                                <h2 className="mb-8 text-3xl font-bold tracking-tight">Curated Stays</h2>
+                                <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+                                    {hotels.map((hotel, idx) => (
+                                        <div key={`${hotel}-${idx}`} className="overflow-hidden rounded-[2rem] bg-white shadow-sm transition-all duration-500 hover:shadow-xl">
+                                            <div className="relative h-64">
+                                                <img className="h-full w-full object-cover" src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80"/>
+                                                <div className="absolute right-4 top-4 rounded-full bg-white/90 px-3 py-1 backdrop-blur-md">
+                                                    <span className="text-xs font-bold">Best Pick</span>
+                                                </div>
+                                            </div>
+                                            <div className="p-8">
+                                                <span className="mb-1 block text-[10px] font-extrabold uppercase tracking-[0.2em] text-primary">Stay Option</span>
+                                                <h4 className="text-2xl font-bold tracking-tight">{hotel}</h4>
+                                                <p className="mt-3 text-sm text-onSurfaceVariant">Selected for your route from {planner.selection.location} to {details?.featured_city}.</p>
+                                                <button className="mt-6 w-full rounded-2xl bg-primary py-4 font-bold text-onPrimary transition-all active:scale-95">Book Now</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                        </>
+                    )}
+                </main>
+            );
+        };
+
+        const MapPage = () => {
+            const planner = usePlannerState();
+
+            useEffect(() => {
+                planner.refresh(planner.selection).catch(() => {});
+            }, []);
+
+            const map = planner.appState?.map;
+            const itinerary = map?.itinerary || [];
+
+            const points = useMemo(() => {
+                if (!itinerary.length) return [];
+                const lats = itinerary.map((item) => item.coordinates[0]);
+                const lons = itinerary.map((item) => item.coordinates[1]);
+                const minLat = Math.min(...lats);
+                const maxLat = Math.max(...lats);
+                const minLon = Math.min(...lons);
+                const maxLon = Math.max(...lons);
+
+                return itinerary.map((item) => ({
+                    ...item,
+                    x: 18 + ((item.coordinates[1] - minLon) / Math.max(maxLon - minLon, 1)) * 62,
+                    y: 18 + ((maxLat - item.coordinates[0]) / Math.max(maxLat - minLat, 1)) * 55,
+                }));
+            }, [JSON.stringify(itinerary)]);
+
+            return (
+                <main className="flex h-screen flex-col overflow-hidden pt-20 md:flex-row">
+                    <aside className="order-2 w-full overflow-y-auto border-r border-outlineVariant/15 bg-surfaceContainerLow md:order-1 md:w-[400px]">
+                        <div className="p-6">
+                            <div className="mb-8">
+                                <div className="mb-1 text-[11px] font-bold uppercase tracking-widest text-primary">Upcoming Journey</div>
+                                <h1 className="text-3xl font-extrabold tracking-tight text-onSurface">{map?.trip_name || "Planner"}</h1>
+                                <p className="mt-2 flex items-center gap-2 text-sm text-onSurfaceVariant">
+                                    <span className="material-symbols-outlined text-sm">calendar_today</span>
+                                    {map?.dates || "2026 Travel Planning Window"}
+                                </p>
+                            </div>
+                            {planner.error && <ErrorBanner message={planner.error} />}
+                            {planner.loading && <LoadingCard text="Loading planner route and itinerary..." />}
+                            {!planner.loading && (
+                                <div className="space-y-6">
+                                    {itinerary.map((item) => (
+                                        <div key={`${item.day}-${item.city}`} className="relative pl-8">
+                                            <div className="absolute left-0 top-1 h-full w-[2px] bg-outlineVariant"></div>
+                                            <div className="absolute left-[-5px] top-1 h-3 w-3 rounded-full bg-primary ring-4 ring-primaryFixed"></div>
+                                            <div className="rounded-xl border border-outlineVariant/10 bg-white p-4 shadow-sm">
+                                                <div className="mb-2 flex items-start justify-between">
+                                                    <span className="rounded-full bg-tertiaryContainer/20 px-2 py-1 text-[10px] font-extrabold uppercase tracking-widest text-tertiary">Day {item.day}</span>
+                                                    <span className="text-xs font-medium text-outline">{item.city}</span>
+                                                </div>
+                                                <h3 className="font-bold text-onSurface">{item.highlight}</h3>
+                                                <p className="mt-2 text-sm text-onSurfaceVariant">{item.hotel}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </aside>
+                    <section className="relative order-1 h-[614px] flex-grow overflow-hidden bg-surfaceDim md:order-2 md:h-full">
+                        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1526778548025-fa2f459cd5ce?auto=format&fit=crop&w=1400&q=80')] bg-cover bg-center opacity-25 mix-blend-multiply"></div>
+                        <svg className="absolute inset-0 h-full w-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+                            <path
+                                d={points.length ? points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ") : ""}
+                                fill="none"
+                                opacity="0.6"
+                                stroke="#FF9933"
+                                strokeDasharray="2 2"
+                                strokeWidth="1.2"
+                            ></path>
+                        </svg>
+                        {points.map((point) => (
+                            <div key={point.city} className="absolute" style={{ left: `${point.x}%`, top: `${point.y}%`, transform: "translate(-50%, -50%)" }}>
+                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-onPrimary shadow-xl ring-4 ring-white/50">
+                                    <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>location_on</span>
+                                </div>
+                                <div className="mt-2 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-onSurface shadow-sm">{point.city}</div>
+                            </div>
+                        ))}
+                        <div className="absolute bottom-10 right-10 flex flex-col gap-2">
+                            <button className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-lg text-onSurface">
+                                <span className="material-symbols-outlined">add</span>
+                            </button>
+                            <button className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-lg text-onSurface">
+                                <span className="material-symbols-outlined">remove</span>
+                            </button>
+                            <button className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-lg text-onPrimary">
+                                <span className="material-symbols-outlined">my_location</span>
+                            </button>
+                        </div>
+                    </section>
+                </main>
+            );
+        };
+
+        const App = () => {
+            const location = useLocation();
+
+            useEffect(() => {
+                window.scrollTo(0, 0);
+            }, [location.pathname]);
+
+            return (
+                <AppShell>
+                    <TopAppBar />
+                    <div className="flex-grow">
+                        <Routes>
+                            <Route path="/" element={<LandingPage />} />
+                            <Route path="/map" element={<MapPage />} />
+                            <Route path="/details" element={<DetailsPage />} />
+                            <Route path="/recommendations" element={<RecommendationsPage />} />
+                        </Routes>
+                    </div>
+                    {location.pathname !== "/map" && <Footer />}
+                    <BottomNavBar />
+                </AppShell>
+            );
+        };
+
+        const root = createRoot(document.getElementById("root"));
+        root.render(
+            <HashRouter>
+                <App />
+            </HashRouter>
+        );
+    </script>
+</body>
+</html>

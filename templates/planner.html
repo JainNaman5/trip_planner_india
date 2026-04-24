@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Trip Planner - Trip Planner India{% endblock %}
+
+{% block content %}
+<div class="planner-layout">
+    <!-- Sidebar Itinerary -->
+    <aside class="planner-sidebar">
+        <div class="planner-sidebar-inner">
+            <div class="planner-header">
+                <span class="section-tag">Upcoming Journey</span>
+                <h1>{{ trip_name }}</h1>
+                <p class="planner-dates">
+                    <span class="material-symbols-outlined">calendar_today</span>
+                    Flexible 2026 Window
+                </p>
+            </div>
+
+            <div class="itinerary-list">
+                {% for item in itinerary %}
+                <div class="itinerary-item">
+                    <div class="itinerary-line">
+                        <div class="itinerary-dot"></div>
+                    </div>
+                    <div class="itinerary-card">
+                        <div class="itinerary-top">
+                            <span class="day-badge">Day {{ item.day }}</span>
+                            <span class="itinerary-city">{{ item.city }}</span>
+                        </div>
+                        <h3>{{ item.highlight }}</h3>
+                        <p>{{ item.hotel }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <a href="/explore?location={{ origin }}" class="btn-outline" style="margin-top:1rem;">← Back to Explore</a>
+        </div>
+    </aside>
+
+    <!-- Map Section -->
+    <section class="planner-map-section">
+        <div id="leafletMap" class="leaflet-map-container"></div>
+        <div class="map-controls">
+            <button onclick="map.zoomIn()" class="map-btn"><span class="material-symbols-outlined">add</span></button>
+            <button onclick="map.zoomOut()" class="map-btn"><span class="material-symbols-outlined">remove</span></button>
+            <button onclick="map.setView([{{ center_lat }}, {{ center_lng }}], 6)" class="map-btn primary"><span class="material-symbols-outlined">my_location</span></button>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initialize Leaflet map
+    const itinerary = {{ itinerary_json|safe }};
+    const centerLat = {{ center_lat }};
+    const centerLng = {{ center_lng }};
+
+    const map = L.map('leafletMap').setView([centerLat, centerLng], 6);
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 18,
+    }).addTo(map);
+
+    // Custom marker icon
+    const originIcon = L.divIcon({
+        className: 'custom-marker origin-marker',
+        html: '<span class="material-symbols-outlined" style="font-variation-settings:\'FILL\' 1;color:#fff;font-size:24px;">location_on</span>',
+        iconSize: [48, 48],
+        iconAnchor: [24, 48],
+        popupAnchor: [0, -48],
+    });
+
+    const destIcon = L.divIcon({
+        className: 'custom-marker dest-marker',
+        html: '<span class="material-symbols-outlined" style="font-variation-settings:\'FILL\' 1;color:#fff;font-size:20px;">place</span>',
+        iconSize: [40, 40],
+        iconAnchor: [20, 40],
+        popupAnchor: [0, -40],
+    });
+
+    // Add markers and polyline
+    const coords = [];
+    itinerary.forEach((item, idx) => {
+        const latlng = [item.coordinates[0], item.coordinates[1]];
+        coords.push(latlng);
+
+        const icon = idx === 0 ? originIcon : destIcon;
+        const marker = L.marker(latlng, { icon: icon }).addTo(map);
+        marker.bindPopup(`
+            <div style="font-family:'Plus Jakarta Sans',sans-serif;padding:4px;">
+                <strong style="font-size:14px;">Day ${item.day}: ${item.city}</strong><br/>
+                <span style="color:#555;">${item.highlight}</span><br/>
+                <small style="color:#8f4e00;">${item.hotel}</small>
+            </div>
+        `);
+    });
+
+    // Draw route line
+    if (coords.length > 1) {
+        L.polyline(coords, {
+            color: '#FF9933',
+            weight: 3,
+            opacity: 0.8,
+            dashArray: '10 6',
+        }).addTo(map);
+    }
+
+    // Fit bounds
+    if (coords.length > 1) {
+        map.fitBounds(coords, { padding: [50, 50] });
+    }
+</script>
+{% endblock %}

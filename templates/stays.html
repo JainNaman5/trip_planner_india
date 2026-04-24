@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Stays & Transport - Trip Planner India{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<section class="stays-hero">
+    <div class="stays-hero-text">
+        <span class="section-tag">{{ cluster_theme }}</span>
+        <h1>Reach the <br/><span class="hero-accent">Best Stays</span></h1>
+        <p>Compare route and hotel options from {{ origin }} to {{ dest_city }}.</p>
+    </div>
+    <div class="stays-hero-img">
+        <img src="{{ dest_image }}" alt="{{ dest_city }}"/>
+        <div class="stays-hero-img-overlay"></div>
+    </div>
+</section>
+
+<!-- Transport Section -->
+<section class="transport-section">
+    <div class="section-title-row">
+        <div>
+            <h2>How to Get There</h2>
+            <div class="title-bar"></div>
+        </div>
+        <div class="dest-label">
+            Destination: {{ dest_city }}, {{ dest_state }}
+        </div>
+    </div>
+    <div class="transport-grid">
+        {% for t in transport %}
+        <div class="transport-card {% if loop.first %}recommended{% endif %}">
+            <div class="transport-icon-box">
+                <span class="material-symbols-outlined">{{ t.icon }}</span>
+            </div>
+            <h3>{{ t.mode }}</h3>
+            <p>Estimated route for your selected journey.</p>
+            <div class="transport-price">
+                <span class="price-label">EST.</span>
+                <span class="price-value">{{ t.price_display }}</span>
+            </div>
+            <div class="transport-duration">
+                <span class="material-symbols-outlined">schedule</span>
+                {{ t.duration }}
+            </div>
+            {% if loop.first %}
+            <span class="rec-badge">Recommended</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- Stays Section -->
+<section class="stays-section">
+    <h2>Curated Stays</h2>
+    <div class="stays-grid">
+        {% for hotel in stays %}
+        <div class="stay-card">
+            <div class="stay-card-img">
+                <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80" alt="{{ hotel.name }}"/>
+                <div class="stay-type-badge">{{ hotel.type|replace('_', ' ')|title }}</div>
+            </div>
+            <div class="stay-card-body">
+                <span class="stay-label">Stay Option</span>
+                <h4>{{ hotel.name }}</h4>
+                <p>Selected for your route from {{ origin }} to {{ dest_city }}.</p>
+                <div class="stay-meta">
+                    <span class="stay-price">₹{{ hotel.price_per_night }}/night</span>
+                    <span class="stay-rating">⭐ {{ hotel.rating }}</span>
+                </div>
+                <button class="btn-primary">Book Now</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

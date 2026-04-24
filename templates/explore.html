@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Explore - Trip Planner India{% endblock %}
+
+{% block content %}
+<div class="explore-layout">
+    <!-- Sidebar -->
+    <aside class="explore-sidebar">
+        <div class="sidebar-card">
+            <div>
+                <h3 class="sidebar-heading">ML Intelligence</h3>
+                <div class="ml-badge">
+                    <p>Personalized feed for <strong>{{ origin.name }}</strong> using {{ trip_type_label }} travel style.</p>
+                </div>
+            </div>
+            <div class="sidebar-info">
+                <h3 class="sidebar-heading">Selection</h3>
+                <p><strong>Place:</strong> {{ origin.name }}</p>
+                <p><strong>Budget:</strong> {{ budget_label }}</p>
+                <p><strong>Style:</strong> {{ trip_type_label }}</p>
+                <p><strong>Cluster:</strong> {{ cluster_theme }}</p>
+            </div>
+            <a href="/" class="btn-outline">← Change City</a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="explore-main">
+        <header class="explore-header">
+            <h1>ML-Recommended Places</h1>
+            <p>Curated destinations near {{ origin.name }} — {{ cluster_theme }} region.</p>
+        </header>
+
+        {% if nearby|length > 0 %}
+        <div class="results-grid">
+            <!-- Featured Card (first result) -->
+            {% set top = nearby[0] %}
+            <article class="result-featured">
+                <div class="result-featured-inner">
+                    <div class="result-featured-img">
+                        <img alt="{{ top.city }}" src="{{ top.image }}"/>
+                    </div>
+                    <div class="result-featured-body">
+                        <div class="result-top-row">
+                            <span class="match-badge">High Match • {{ top.match_score }}%</span>
+                            <span class="material-symbols-outlined">favorite</span>
+                        </div>
+                        <h2>{{ top.city }}</h2>
+                        <p class="result-state">{{ top.state }} — {{ top.distance_km }} km away</p>
+                        <p class="result-desc">{{ top.description }}</p>
+                        <div class="result-attractions">
+                            {% for a in top.attractions[:3] %}
+                            <span class="attr-chip">{{ a.name }}</span>
+                            {% endfor %}
+                        </div>
+                        <div class="result-transport-row">
+                            {% for t in top.transport %}
+                            <div class="transport-mini">
+                                <span class="material-symbols-outlined">{{ t.icon }}</span>
+                                <span>{{ t.mode }} — {{ t.price_display }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <a href="/stays?location={{ origin.name }}&dest={{ top.city }}&budget={{ budget }}&trip_type={{ trip_type }}" class="btn-primary">Plan Visit</a>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Other results -->
+            {% for place in nearby[1:] %}
+            <article class="result-card">
+                <div class="result-card-img">
+                    <img alt="{{ place.city }}" src="{{ place.image }}"/>
+                    <span class="score-badge">{{ place.match_score }}%</span>
+                </div>
+                <div class="result-card-body">
+                    <h3>{{ place.city }}</h3>
+                    <div class="result-meta">
+                        <span>{{ place.distance_km }} km away</span>
+                        <span>{{ place.state }}</span>
+                    </div>
+                    <p>{{ place.description }}</p>
+                    <div class="result-attractions">
+                        {% for a in place.attractions[:2] %}
+                        <span class="attr-chip small">{{ a.name }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="result-transport-row">
+                        {% for t in place.transport[:2] %}
+                        <div class="transport-mini">
+                            <span class="material-symbols-outlined">{{ t.icon }}</span>
+                            <span>{{ t.price_display }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <a href="/stays?location={{ origin.name }}&dest={{ place.city }}&budget={{ budget }}&trip_type={{ trip_type }}" class="btn-small">View Details →</a>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <span class="material-symbols-outlined">search_off</span>
+            <h3>No results found</h3>
+            <p>Try a different city like Delhi, Mumbai, or Jaipur.</p>
+            <a href="/" class="btn-primary">Go Back</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>{% block title %}Trip Planner India{% endblock %}</title>
+    <meta name="description" content="Plan your dream trip across India with ML-powered recommendations, transport options, and stay suggestions."/>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="/static/css/style.css"/>
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <header class="top-bar" id="topBar">
+        <div class="top-bar-inner">
+            <a href="/" class="logo">Trip Planner India</a>
+            <nav class="nav-links">
+                <a href="/" class="nav-link {% if active_page == 'home' %}active{% endif %}">Home</a>
+                <a href="/explore" class="nav-link {% if active_page == 'explore' %}active{% endif %}">Explore</a>
+                <a href="/planner" class="nav-link {% if active_page == 'planner' %}active{% endif %}">Planner</a>
+                <a href="/stays" class="nav-link {% if active_page == 'stays' %}active{% endif %}">Stays</a>
+            </nav>
+            <div class="tech-badge">Flask + ML + India Travel</div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    {% if active_page != 'planner' %}
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <div class="footer-logo">Trip Planner India</div>
+                    <p class="footer-desc">Redefining travel across India with route planning, recommendations, transport ideas, and stay suggestions powered by Flask and machine learning.</p>
+                </div>
+                <div class="footer-col">
+                    <h5>Resources</h5>
+                    <ul>
+                        <li>City and state search</li>
+                        <li>Nearby recommendations</li>
+                        <li>Transport estimate</li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h5>Project</h5>
+                    <ul>
+                        <li>Planner</li>
+                        <li>Stays</li>
+                        <li>Local Secrets</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Trip Planner India. Crafted for smart travel planning across India.</p>
+            </div>
+        </div>
+    </footer>
+    {% endif %}
+
+    <!-- Bottom Mobile Nav -->
+    <nav class="bottom-nav">
+        <a href="/" class="bottom-link {% if active_page == 'home' %}active{% endif %}">
+            <span class="material-symbols-outlined">home_max</span>
+            <span>Home</span>
+        </a>
+        <a href="/planner" class="bottom-link {% if active_page == 'planner' %}active{% endif %}">
+            <span class="material-symbols-outlined">auto_awesome</span>
+            <span>Trips</span>
+        </a>
+        <a href="/explore" class="bottom-link {% if active_page == 'explore' %}active{% endif %}">
+            <span class="material-symbols-outlined">favorite</span>
+            <span>Local</span>
+        </a>
+        <a href="/stays" class="bottom-link {% if active_page == 'stays' %}active{% endif %}">
+            <span class="material-symbols-outlined">apartment</span>
+            <span>Stays</span>
+        </a>
+    </nav>
+
+    <script src="/static/js/main.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
