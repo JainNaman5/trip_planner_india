@@ -60,7 +60,7 @@
                             </div>
                             {% endfor %}
                         </div>
-                        <a href="/stays?location={{ origin.name }}&dest={{ top.city }}&budget={{ budget }}&trip_type={{ trip_type }}" class="btn-primary">Plan Visit</a>
+                        <a href="/planner?location={{ origin.name }}&dest={{ top.city }}&budget={{ budget }}&trip_type={{ trip_type }}" class="btn-primary">Plan Route →</a>
                     </div>
                 </div>
             </article>
@@ -92,7 +92,7 @@
                         </div>
                         {% endfor %}
                     </div>
-                    <a href="/stays?location={{ origin.name }}&dest={{ place.city }}&budget={{ budget }}&trip_type={{ trip_type }}" class="btn-small">View Details →</a>
+                    <a href="/planner?location={{ origin.name }}&dest={{ place.city }}&budget={{ budget }}&trip_type={{ trip_type }}" class="btn-small">Plan Route →</a>
                 </div>
             </article>
             {% endfor %}

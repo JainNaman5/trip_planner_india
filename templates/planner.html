@@ -28,12 +28,15 @@
                         </div>
                         <h3>{{ item.highlight }}</h3>
                         <p>{{ item.hotel }}</p>
+                        {% if not loop.first %}
+                        <a href="/stays?location={{ origin }}&dest={{ item.city }}" class="btn-small" style="margin-top:.5rem;">View Stays →</a>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}
             </div>
 
-            <a href="/explore?location={{ origin }}" class="btn-outline" style="margin-top:1rem;">← Back to Explore</a>
+            <a href="/explore?{{ query|default('') }}" class="btn-outline" style="margin-top:1rem;">← Back to Explore</a>
         </div>
     </aside>
 

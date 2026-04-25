@@ -21,7 +21,9 @@
         </div>
         <div class="hero-form-card" id="searchCard">
             <h3>Start Your Journey</h3>
-            <div id="errorBanner" class="error-banner hidden"></div>
+            {% if error %}
+            <div class="error-banner">{{ error }}</div>
+            {% endif %}
             <form id="tripForm" action="/explore" method="GET">
                 <div class="form-group">
                     <label>Starting City or State</label>
@@ -74,33 +76,36 @@
     </div>
     <div class="featured-grid">
         <div class="featured-card featured-large" onclick="window.location='/explore'">
-            <img alt="Recommendations" src="https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=80"/>
+            <img alt="Explore nearby" src="https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=80"/>
             <div class="featured-card-overlay"></div>
             <div class="featured-card-text">
-                <span class="card-tag">Local Secrets</span>
-                <h4>The Taj Mahal</h4>
-                <p>Agra, Uttar Pradesh</p>
+                <span class="card-tag">Step 1</span>
+                <h4>Explore Nearby</h4>
+                <p>Discover ML-recommended places</p>
             </div>
         </div>
         <div class="featured-card" onclick="window.location='/planner'">
             <img alt="Planner" src="https://images.unsplash.com/photo-1477587458883-47145ed94245?auto=format&fit=crop&w=800&q=80"/>
             <div class="featured-card-overlay"></div>
             <div class="featured-card-text">
-                <h4>Planner Map</h4>
-                <p>Route and itinerary view</p>
+                <span class="card-tag">Step 2</span>
+                <h4>Plan Route</h4>
+                <p>Map view & itinerary</p>
             </div>
         </div>
         <div class="featured-card" onclick="window.location='/stays'">
             <img alt="Stays" src="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80"/>
             <div class="featured-card-overlay"></div>
             <div class="featured-card-text">
-                <h4>Stays and Transport</h4>
+                <span class="card-tag">Step 3</span>
+                <h4>Book Stays</h4>
+                <p>Hotels & transport</p>
             </div>
         </div>
-        <div class="featured-card featured-accent" onclick="window.location='/planner'">
+        <div class="featured-card featured-accent" onclick="document.getElementById('locationInput').focus()">
             <div class="accent-content">
-                <span class="material-symbols-outlined">explore</span>
-                <h4>Open Planner <br/>Dashboard</h4>
+                <span class="material-symbols-outlined">search</span>
+                <h4>Search a <br/>City Now</h4>
             </div>
         </div>
     </div>

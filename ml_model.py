@@ -58,7 +58,7 @@ class TripRecommender:
         scaled = self.scaler.fit_transform(coords)
 
         # KNN model — find nearest cities by geography
-        k = min(len(self.cities), 15)
+        k = min(len(self.cities), 25)
         self.knn_model = NearestNeighbors(n_neighbors=k, metric="euclidean")
         self.knn_model.fit(scaled)
 
@@ -87,16 +87,18 @@ class TripRecommender:
         return None
 
     def get_nearby_cities(self, lat, lng, k=10):
-        """Use KNN to find the k nearest cities to a given coordinate."""
+        """Use KNN to find the k nearest cities within 500km of a coordinate."""
+        n = min(k + 15, len(self.cities))  # Fetch extra to filter by real distance
         point = self.scaler.transform([[lat, lng]])
-        distances, indices = self.knn_model.kneighbors(point, n_neighbors=min(k + 1, len(self.cities)))
+        distances, indices = self.knn_model.kneighbors(point, n_neighbors=n)
         results = []
         for dist_val, idx in zip(distances[0], indices[0]):
             city = self.cities[idx]
             real_dist = haversine(lat, lng, city["lat"], city["lng"])
-            results.append({**city, "distance_km": round(real_dist)})
-        # Filter out the origin city (distance ~0)
-        return [r for r in results if r["distance_km"] > 10][:k]
+            if 10 < real_dist <= 500:  # Skip origin and too-far cities
+                results.append({**city, "distance_km": round(real_dist)})
+        results.sort(key=lambda x: x["distance_km"])
+        return results[:k]
 
     def get_recommendations(self, city_name, budget="medium", trip_type="balanced"):
         """Full recommendation pipeline for a given city."""
@@ -126,17 +128,39 @@ class TripRecommender:
         for city in nearby:
             city_attractions = [a for a in attractions if a["city_id"] == city["id"]]
             avg_pop = (sum(a["popularity"] for a in city_attractions) / len(city_attractions)) if city_attractions else 0
-            # ML Score: weighted combo of inverse distance and popularity
-            dist_score = max(0, 100 - city["distance_km"] * 0.1)
-            pop_score = avg_pop * 10
-            # Trip-type weighting
+            avg_rating = (sum(a.get("google_rating", 4.0) for a in city_attractions) / len(city_attractions)) if city_attractions else 4.0
+            num_attractions = len(city_attractions)
+
+            # ML Score: weighted combo of distance, popularity, rating, and variety
+            dist_score = max(0, 100 - city["distance_km"] * 0.12)
+            pop_score = min(avg_pop * 8, 50)
+            rating_score = (avg_rating - 3.0) * 15  # 0-30 range
+            variety_score = min(num_attractions * 5, 20)
+
+            # Trip-type weighting adjustments
+            sig_types = [a.get("significance", "") for a in city_attractions]
             if trip_type == "nearby":
-                match_score = int(dist_score * 0.7 + pop_score * 0.3)
+                # Adventure: prefer closer, nature/adventure spots
+                adventure_bonus = sum(5 for s in sig_types if s in ("Adventure","Nature","Wildlife","Recreational")) 
+                match_score = int(dist_score * 0.6 + pop_score * 0.15 + rating_score * 0.1 + variety_score * 0.05 + adventure_bonus)
             elif trip_type == "popular":
-                match_score = int(dist_score * 0.3 + pop_score * 0.7)
+                # Heritage: prefer historical, high-rated, popular
+                heritage_bonus = sum(5 for s in sig_types if s in ("Historical","Architectural","Cultural","Archaeological"))
+                match_score = int(dist_score * 0.2 + pop_score * 0.4 + rating_score * 0.2 + variety_score * 0.1 + heritage_bonus)
             else:
-                match_score = int(dist_score * 0.5 + pop_score * 0.5)
-            match_score = min(match_score, 98)
+                # Spiritual/balanced: prefer religious, spiritual spots
+                spiritual_bonus = sum(5 for s in sig_types if s in ("Religious","Spiritual"))
+                match_score = int(dist_score * 0.35 + pop_score * 0.25 + rating_score * 0.2 + variety_score * 0.1 + spiritual_bonus)
+
+            # Budget relevance: penalize expensive attractions for budget travelers
+            if budget == "low":
+                avg_fee = (sum(a.get("entrance_fee", 0) for a in city_attractions) / max(len(city_attractions), 1))
+                if avg_fee > 200:
+                    match_score -= 10
+            elif budget == "high":
+                match_score += 5  # Luxury travelers get a small boost for popular spots
+
+            match_score = max(15, min(match_score, 98))
 
             # Transport options
             transport = conn.execute(
@@ -144,18 +168,11 @@ class TripRecommender:
                 (origin["id"], city["id"])
             ).fetchall()
 
-            # Budget filter for stays
-            budget_map = {"low": "budget", "medium": "mid_range", "high": "luxury"}
-            stay_type = budget_map.get(budget, "mid_range")
+            # Get all stay options (budget, mid-range, luxury) for the city
             stays = conn.execute(
-                "SELECT name, type, price_per_night, rating FROM stays WHERE city_id=? AND type=?",
-                (city["id"], stay_type)
+                "SELECT name, type, price_per_night, rating FROM stays WHERE city_id=? ORDER BY price_per_night",
+                (city["id"],)
             ).fetchall()
-            if not stays:
-                stays = conn.execute(
-                    "SELECT name, type, price_per_night, rating FROM stays WHERE city_id=? LIMIT 2",
-                    (city["id"],)
-                ).fetchall()
 
             scored.append({
                 "city": city["name"],
