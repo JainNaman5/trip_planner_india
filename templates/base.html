@@ -18,11 +18,13 @@
             <a href="/" class="logo">Trip Planner India</a>
             <nav class="nav-links">
                 <a href="/" class="nav-link {% if active_page == 'home' %}active{% endif %}">Home</a>
-                <a href="/explore" class="nav-link {% if active_page == 'explore' %}active{% endif %}">Explore</a>
-                <a href="/planner" class="nav-link {% if active_page == 'planner' %}active{% endif %}">Planner</a>
-                <a href="/stays" class="nav-link {% if active_page == 'stays' %}active{% endif %}">Stays</a>
+                <a href="/explore?{{ query|default('location=Jaipur&budget=medium&trip_type=balanced') }}" class="nav-link {% if active_page == 'explore' %}active{% endif %}">Explore</a>
+                <a href="/planner?{{ query|default('location=Jaipur&budget=medium&trip_type=balanced') }}" class="nav-link {% if active_page == 'planner' %}active{% endif %}">Planner</a>
+                <a href="/stays?{{ query|default('location=Jaipur&budget=medium&trip_type=balanced') }}" class="nav-link {% if active_page == 'stays' %}active{% endif %}">Stays</a>
             </nav>
-            <div class="tech-badge">Flask + ML + India Travel</div>
+            <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
+                <span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
+            </button>
         </div>
     </header>
 
@@ -70,15 +72,15 @@
             <span class="material-symbols-outlined">home_max</span>
             <span>Home</span>
         </a>
-        <a href="/planner" class="bottom-link {% if active_page == 'planner' %}active{% endif %}">
-            <span class="material-symbols-outlined">auto_awesome</span>
-            <span>Trips</span>
+        <a href="/explore?{{ query|default('') }}" class="bottom-link {% if active_page == 'explore' %}active{% endif %}">
+            <span class="material-symbols-outlined">explore</span>
+            <span>Explore</span>
         </a>
-        <a href="/explore" class="bottom-link {% if active_page == 'explore' %}active{% endif %}">
-            <span class="material-symbols-outlined">favorite</span>
-            <span>Local</span>
+        <a href="/planner?{{ query|default('') }}" class="bottom-link {% if active_page == 'planner' %}active{% endif %}">
+            <span class="material-symbols-outlined">map</span>
+            <span>Planner</span>
         </a>
-        <a href="/stays" class="bottom-link {% if active_page == 'stays' %}active{% endif %}">
+        <a href="/stays?{{ query|default('') }}" class="bottom-link {% if active_page == 'stays' %}active{% endif %}">
             <span class="material-symbols-outlined">apartment</span>
             <span>Stays</span>
         </a>
